@@ -44,20 +44,23 @@ main() {
 	fi
 
 	# --- Path Processing ---
-	local realpath_cmd="realpath"
-	[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
-
-	local relative_base="$pane_dir"
-	$use_git_root && relative_base="$git_root"
-
 	# Read file list into an array
 	mapfile -t selected_files < <(printf "%s" "$selected_files_str")
 
-	# Prepend current directory to each filename to create full paths
-	local full_paths=("${selected_files[@]/#/$pane_dir/}")
+	local relative_paths=()
+	if $use_git_root; then
+		local realpath_cmd="realpath"
+		[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
 
-	# Convert all full paths to relative paths in a single command
-	mapfile -t relative_paths < <("$realpath_cmd" --relative-to="$relative_base" "${full_paths[@]}")
+		# Prepend current directory to each filename to create full paths
+		local full_paths=("${selected_files[@]/#/$pane_dir\/}")
+
+		# Convert all full paths to be relative to the git root
+		mapfile -t relative_paths < <("$realpath_cmd" --relative-to="$git_root" "${full_paths[@]}")
+	else
+		# Default mode: paths are already relative to the current pane directory
+		relative_paths=("${selected_files[@]}")
+	fi
 
 	# --- Output Formatting ---
 	local files_oneline
