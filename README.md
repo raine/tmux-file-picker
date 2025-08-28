@@ -1,11 +1,9 @@
 # tmux-file-picker
 
 Pop up fzf in tmux to quickly insert file paths, perfect for AI coding
-assistants.
+assistants like Claude Code.
 
-Works with [Claude Code](https://www.anthropic.com/claude-code),
-[Gemini CLI](https://github.com/google-gemini/gemini-cli), and other
-terminal-based AI tools.
+https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 
 ## Why tmux-file-picker?
 
