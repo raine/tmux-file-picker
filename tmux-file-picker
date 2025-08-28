@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+main() {
+	if [[ -z "${TMUX-}" ]]; then
+		echo "Error: This script must be run inside a tmux session." >&2
+		exit 1
+	fi
+
+	local pane_id
+	local pane_dir
+	local pane_pid
+	pane_id=$(tmux display-message -p '#{pane_id}')
+	pane_dir=$(tmux display-message -p '#{pane_current_path}')
+	pane_pid=$(tmux display-message -p '#{pane_pid}')
+
+	cd "$pane_dir"
+
+	# --- Argument Parsing ---
+	local use_git_root=false
+	if [[ "${1-}" == "--git-root" || "${1-}" == "-g" ]]; then
+		use_git_root=true
+	fi
+
+	# --- Mode Detection ---
+	local at_prefix_mode=false
+	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini" >/dev/null; then
+		at_prefix_mode=true
+	fi
+
+	local git_root
+	git_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+	if $use_git_root && [[ -z "$git_root" ]]; then
+		echo "Error: --git-root flag used, but not inside a git repository." >&2
+		exit 1
+	fi
+
+	# --- File Selection ---
+	local selected_files_str
+	selected_files_str=$(fd --type f | fzf --multi --reverse --preview 'bat --style=numbers --color=always {}' || true)
+
+	if [[ -z "$selected_files_str" ]]; then
+		exit 0
+	fi
+
+	# --- Path Processing ---
+	local realpath_cmd="realpath"
+	[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+
+	local relative_base="$pane_dir"
+	$use_git_root && relative_base="$git_root"
+
+	# Read file list into an array
+	mapfile -t selected_files < <(printf "%s" "$selected_files_str")
+
+	# Prepend current directory to each filename to create full paths
+	local full_paths=("${selected_files[@]/#/$pane_dir/}")
+
+	# Convert all full paths to relative paths in a single command
+	mapfile -t relative_paths < <("$realpath_cmd" --relative-to="$relative_base" "${full_paths[@]}")
+
+	# --- Output Formatting ---
+	local files_oneline
+	if $at_prefix_mode; then
+		# Prefix each file with '@' and join with spaces
+		printf -v files_oneline "@%s " "${relative_paths[@]}"
+	else
+		# Shell-escape each file path and join with spaces
+		local escaped_paths=()
+		for path in "${relative_paths[@]}"; do
+			printf -v escaped_path "%q" "$path"
+			escaped_paths+=("$escaped_path")
+		done
+		files_oneline=$(printf "%s " "${escaped_paths[@]}")
+	fi
+
+	# --- Send to Tmux ---
+	tmux send-keys -t "$pane_id" "$files_oneline"
+}
+
+main "$@"
