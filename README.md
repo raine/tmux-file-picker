@@ -5,15 +5,6 @@ assistants like Claude Code.
 
 https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 
-## Why tmux-file-picker?
-
-AI coding assistants like Claude Code and Gemini CLI need context to work their
-magic, but their built-in file pickers are clumsy to use.
-
-`tmux-file-picker` solves this with a tmux popup that launches `fzf`, letting
-you fuzzy-find any file in your project and paste its path directly into your
-terminal without leaving your current context.
-
 ## Installation
 
 1.  Download the script:
@@ -44,7 +35,8 @@ popup window over your current terminal session.
 
 bind C-f display-popup -E "tmux-file-picker"
 
-# Use -g flag to show paths relative to git root bind C-g display-popup -E "tmux-file-picker -g"
+# Use -g flag to show paths relative to git root
+bind C-g display-popup -E "tmux-file-picker -g"
 
 # Popup dimensions can be configured like this:
 # bind C-f display-popup -h 60% -w 60% -E "tmux-file-picker"
