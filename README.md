@@ -62,6 +62,10 @@ Reload your tmux configuration for the changes to take effect:
 4.  Press `Enter` to select one file, or `Tab` to select multiple files.
 5.  The selected file path(s) will be pasted directly at your cursor position.
 
+## Lore
+
+https://github.com/Aider-AI/aider/issues/2156#issuecomment-2439919513
+
 ## License
 
 MIT
