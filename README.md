@@ -58,6 +58,11 @@ Reload your tmux configuration for the changes to take effect:
 
 https://github.com/Aider-AI/aider/issues/2156#issuecomment-2439919513
 
+## See also
+
+- https://github.com/raine/consult-llm-mcp
+- https://github.com/raine/tmux-inspect
+
 ## License
 
 MIT
