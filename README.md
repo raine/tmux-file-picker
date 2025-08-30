@@ -24,7 +24,8 @@ https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 
 - [fzf](https://github.com/junegunn/fzf): For the fuzzy-finding interface.
 - [fd](https://github.com/sharkdp/fd): For file discovery.
-- [bat](https://github.com/sharkdp/bat): For syntax-highlighted file previews.
+- [bat](https://github.com/sharkdp/bat) (optional): For syntax-highlighted file
+  previews.
 
 ## Setup
 
