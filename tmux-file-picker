@@ -49,8 +49,12 @@ main() {
 	fi
 
 	# --- Path Processing ---
-	# Read file list into an array
-	mapfile -t selected_files < <(printf "%s" "$selected_files_str")
+	selected_files=()
+	while IFS= read -r line; do
+		if [[ -n "$line" ]]; then
+			selected_files+=("$line")
+		fi
+	done <<<"$selected_files_str"
 
 	local relative_paths=()
 	if $use_git_root; then
@@ -61,7 +65,12 @@ main() {
 		local full_paths=("${selected_files[@]/#/$pane_dir\/}")
 
 		# Convert all full paths to be relative to the git root
-		mapfile -t relative_paths < <("$realpath_cmd" --relative-to="$git_root" "${full_paths[@]}")
+		relative_paths=()
+		while IFS= read -r line; do
+			if [[ -n "$line" ]]; then
+				relative_paths+=("$line")
+			fi
+		done < <("$realpath_cmd" --relative-to="$git_root" "${full_paths[@]}")
 	else
 		# Default mode: paths are already relative to the current pane directory
 		relative_paths=("${selected_files[@]}")
