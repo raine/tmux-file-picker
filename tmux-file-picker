@@ -35,14 +35,27 @@ main() {
 		exit 1
 	fi
 
+	# --- Command Detection ---
+	local fd_cmd
+	if command -v fd >/dev/null 2>&1; then
+		fd_cmd="fd"
+	elif command -v fdfind >/dev/null 2>&1; then
+		fd_cmd="fdfind"
+	else
+		echo "Error: Required command 'fd' or 'fdfind' not found. Please install it." >&2
+		exit 1
+	fi
+
 	# --- File Selection ---
 	local preview_cmd="cat {}"
 	if command -v bat >/dev/null 2>&1; then
 		preview_cmd="bat --style=numbers --color=always {}"
+	elif command -v batcat >/dev/null 2>&1; then
+		preview_cmd="batcat --style=numbers --color=always {}"
 	fi
 
 	local selected_files_str
-	selected_files_str=$(fd --type f | fzf --multi --reverse --preview "$preview_cmd" || true)
+	selected_files_str=$($fd_cmd --type f | fzf --multi --reverse --preview "$preview_cmd" || true)
 
 	if [[ -z "$selected_files_str" ]]; then
 		exit 0
