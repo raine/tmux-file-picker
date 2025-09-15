@@ -54,8 +54,11 @@ main() {
 		preview_cmd="batcat --style=numbers --color=always {}"
 	fi
 
+	# Allow passing additional fd flags through environment variable
+	local fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type f --exclude .git}"
+
 	local selected_files_str
-	selected_files_str=$($fd_cmd --type f | fzf --multi --reverse --preview "$preview_cmd" || true)
+	selected_files_str=$($fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
 
 	if [[ -z "$selected_files_str" ]]; then
 		exit 0
