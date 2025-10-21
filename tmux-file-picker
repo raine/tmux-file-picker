@@ -125,17 +125,8 @@ main() {
 
 	# If --dir-only is set, just output the directory path and exit
 	if $dir_only; then
-		# Determine the output path based on --git-root flag
+		# When using zoxide, output absolute path
 		local output_path="$search_dir"
-		if $use_git_root; then
-			local realpath_cmd="realpath"
-			[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
-			output_path=$("$realpath_cmd" --relative-to="$git_root" "$search_dir")
-		else
-			local realpath_cmd="realpath"
-			[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
-			output_path=$("$realpath_cmd" --relative-to="$pane_dir" "$search_dir")
-		fi
 
 		# Format output for at_prefix_mode if needed
 		if $at_prefix_mode; then
@@ -186,30 +177,38 @@ main() {
 
 	# --- Path Relativization ---
 	local relative_paths=()
-	local base_dir_for_relativization=""
 
-	if $use_git_root; then
-		base_dir_for_relativization="$git_root"
-	elif [[ "$search_dir" != "$pane_dir" ]]; then
-		base_dir_for_relativization="$pane_dir"
-	fi
-
-	if [[ -n "$base_dir_for_relativization" ]]; then
-		# We need to calculate relative paths against a specific base directory
-		local realpath_cmd="realpath"
-		[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
-
+	# When using zoxide, return absolute paths
+	if $use_zoxide; then
 		# Prepend search directory to each filename to create full paths
-		local full_paths=("${selected_files[@]/#/$search_dir\/}")
-
-		while IFS= read -r line; do
-			if [[ -n "$line" ]]; then
-				relative_paths+=("$line")
-			fi
-		done < <("$realpath_cmd" --relative-to="$base_dir_for_relativization" "${full_paths[@]}")
+		relative_paths=("${selected_files[@]/#/$search_dir\/}")
 	else
-		# Paths are already relative to the correct directory (the pane_dir)
-		relative_paths=("${selected_files[@]}")
+		# Standard path relativization logic
+		local base_dir_for_relativization=""
+
+		if $use_git_root; then
+			base_dir_for_relativization="$git_root"
+		elif [[ "$search_dir" != "$pane_dir" ]]; then
+			base_dir_for_relativization="$pane_dir"
+		fi
+
+		if [[ -n "$base_dir_for_relativization" ]]; then
+			# We need to calculate relative paths against a specific base directory
+			local realpath_cmd="realpath"
+			[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+
+			# Prepend search directory to each filename to create full paths
+			local full_paths=("${selected_files[@]/#/$search_dir\/}")
+
+			while IFS= read -r line; do
+				if [[ -n "$line" ]]; then
+					relative_paths+=("$line")
+				fi
+			done < <("$realpath_cmd" --relative-to="$base_dir_for_relativization" "${full_paths[@]}")
+		else
+			# Paths are already relative to the correct directory (the pane_dir)
+			relative_paths=("${selected_files[@]}")
+		fi
 	fi
 
 	# --- Output Formatting ---

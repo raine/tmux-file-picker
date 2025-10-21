@@ -110,11 +110,12 @@ picking files:
 tmux-file-picker --zoxide
 # First: fzf shows your zoxide directories
 # Second: fzf shows files from the selected directory
+# Returns absolute paths (e.g., /home/user/project/src/file.ts)
 ```
 
 This is particularly useful when you frequently switch between different
-projects. The `--zoxide` flag can be combined with `--git-root` to show file
-paths relative to the git repository root.
+projects. When using `--zoxide`, the script returns absolute paths instead of
+relative paths, making it easier to reference files from any directory.
 
 #### Directory-only mode
 
