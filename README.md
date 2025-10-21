@@ -27,6 +27,13 @@ https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 - [bat](https://github.com/sharkdp/bat) (optional): For syntax-highlighted file
   previews.
 
+**macOS users:** The script uses `grealpath` for path resolution. Install it via
+Homebrew:
+
+```sh
+brew install coreutils
+```
+
 ## Setup
 
 Add a key binding to your `~/.tmux.conf` file to launch the file picker in a
@@ -55,6 +62,30 @@ Reload your tmux configuration for the changes to take effect:
 3.  Type a few characters to filter the list and find your file.
 4.  Press `Enter` to select one file, or `Tab` to select multiple files.
 5.  The selected file path(s) will be pasted directly at your cursor position.
+
+### Searching a specific directory
+
+You can pass a path as an argument to search a specific directory instead of the
+current pane directory:
+
+```tmux
+# Search in a specific directory
+bind C-d display-popup -E "tmux-file-picker ~/my-project"
+
+# Combine with --git-root flag
+bind C-x display-popup -E "tmux-file-picker --git-root ~/my-project"
+```
+
+Both absolute and relative paths are supported. Relative paths are resolved
+relative to the current pane directory.
+
+**Note:** If your path contains spaces, it must be quoted inside the command
+string:
+
+```tmux
+# Example with a quoted path containing spaces
+bind C-d display-popup -E "tmux-file-picker '~/my projects/project a'"
+```
 
 ### Customizing fd flags
 

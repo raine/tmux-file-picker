@@ -14,12 +14,50 @@ main() {
 	pane_dir=$(tmux display-message -p '#{pane_current_path}')
 	pane_pid=$(tmux display-message -p '#{pane_pid}')
 
-	cd "$pane_dir"
-
 	# --- Argument Parsing ---
 	local use_git_root=false
-	if [[ "${1-}" == "--git-root" || "${1-}" == "-g" ]]; then
-		use_git_root=true
+	local path_arg=""
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			--git-root|-g)
+				use_git_root=true
+				shift
+				;;
+			-*)
+				echo "Error: Unknown option '$1'" >&2
+				exit 1
+				;;
+			*)
+				if [[ -n "$path_arg" ]]; then
+					echo "Error: Only one path argument is allowed." >&2
+					exit 1
+				fi
+				path_arg="$1"
+				shift
+				;;
+		esac
+	done
+
+	local search_dir="${path_arg:-$pane_dir}"
+
+	# Convert to absolute path if relative
+	if [[ ! "$search_dir" = /* ]]; then
+		search_dir="$pane_dir/$search_dir"
+	fi
+
+	# Use realpath to resolve ".." and "." components and get a canonical path
+	local realpath_cmd="realpath"
+	[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+
+	if command -v "$realpath_cmd" >/dev/null 2>&1; then
+		search_dir=$("$realpath_cmd" -m "$search_dir")
+	fi
+
+	# Verify the directory exists
+	if [[ ! -d "$search_dir" ]]; then
+		echo "Error: Directory '$search_dir' does not exist." >&2
+		exit 1
 	fi
 
 	# --- Mode Detection ---
@@ -58,7 +96,7 @@ main() {
 	local fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type f --exclude .git}"
 
 	local selected_files_str
-	selected_files_str=$($fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
+	selected_files_str=$(cd "$search_dir" && $fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
 
 	if [[ -z "$selected_files_str" ]]; then
 		exit 0
@@ -72,23 +110,31 @@ main() {
 		fi
 	done <<<"$selected_files_str"
 
+	# --- Path Relativization ---
 	local relative_paths=()
+	local base_dir_for_relativization=""
+
 	if $use_git_root; then
+		base_dir_for_relativization="$git_root"
+	elif [[ "$search_dir" != "$pane_dir" ]]; then
+		base_dir_for_relativization="$pane_dir"
+	fi
+
+	if [[ -n "$base_dir_for_relativization" ]]; then
+		# We need to calculate relative paths against a specific base directory
 		local realpath_cmd="realpath"
 		[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
 
-		# Prepend current directory to each filename to create full paths
-		local full_paths=("${selected_files[@]/#/$pane_dir\/}")
+		# Prepend search directory to each filename to create full paths
+		local full_paths=("${selected_files[@]/#/$search_dir\/}")
 
-		# Convert all full paths to be relative to the git root
-		relative_paths=()
 		while IFS= read -r line; do
 			if [[ -n "$line" ]]; then
 				relative_paths+=("$line")
 			fi
-		done < <("$realpath_cmd" --relative-to="$git_root" "${full_paths[@]}")
+		done < <("$realpath_cmd" --relative-to="$base_dir_for_relativization" "${full_paths[@]}")
 	else
-		# Default mode: paths are already relative to the current pane directory
+		# Paths are already relative to the correct directory (the pane_dir)
 		relative_paths=("${selected_files[@]}")
 	fi
 
