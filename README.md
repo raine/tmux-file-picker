@@ -54,6 +54,9 @@ bind C-g display-popup -E "tmux-file-picker -g"
 # Use --zoxide to select from your frecent directories first
 bind C-z display-popup -E "tmux-file-picker --zoxide"
 
+# Use --zoxide with --dir-only to just insert the directory path
+bind C-v display-popup -E "tmux-file-picker --zoxide --dir-only"
+
 # Combine --zoxide with --git-root
 bind C-x display-popup -E "tmux-file-picker --zoxide --git-root"
 
@@ -112,6 +115,17 @@ tmux-file-picker --zoxide
 This is particularly useful when you frequently switch between different
 projects. The `--zoxide` flag can be combined with `--git-root` to show file
 paths relative to the git repository root.
+
+#### Directory-only mode
+
+Use `--dir-only` with `--zoxide` to insert just the directory path without the
+file selection step:
+
+```bash
+tmux-file-picker --zoxide --dir-only
+# Only shows directory selection, skips file picking
+# Useful for quickly inserting project paths
+```
 
 ### Customizing fd flags
 

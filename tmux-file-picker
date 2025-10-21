@@ -36,6 +36,7 @@ main() {
 	# --- Argument Parsing ---
 	local use_git_root=false
 	local use_zoxide=false
+	local dir_only=false
 	local path_arg=""
 
 	while [[ $# -gt 0 ]]; do
@@ -46,6 +47,10 @@ main() {
 				;;
 			--zoxide)
 				use_zoxide=true
+				shift
+				;;
+			--dir-only)
+				dir_only=true
 				shift
 				;;
 			-*)
@@ -66,6 +71,11 @@ main() {
 	# Check for conflicting arguments
 	if $use_zoxide && [[ -n "$path_arg" ]]; then
 		echo "Error: The --zoxide flag cannot be used with a path argument." >&2
+		exit 1
+	fi
+
+	if $dir_only && ! $use_zoxide; then
+		echo "Error: The --dir-only flag can only be used with --zoxide." >&2
 		exit 1
 	fi
 
@@ -111,6 +121,30 @@ main() {
 	if $use_git_root && [[ -z "$git_root" ]]; then
 		echo "Error: --git-root flag used, but not inside a git repository." >&2
 		exit 1
+	fi
+
+	# If --dir-only is set, just output the directory path and exit
+	if $dir_only; then
+		# Determine the output path based on --git-root flag
+		local output_path="$search_dir"
+		if $use_git_root; then
+			local realpath_cmd="realpath"
+			[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+			output_path=$("$realpath_cmd" --relative-to="$git_root" "$search_dir")
+		else
+			local realpath_cmd="realpath"
+			[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+			output_path=$("$realpath_cmd" --relative-to="$pane_dir" "$search_dir")
+		fi
+
+		# Format output for at_prefix_mode if needed
+		if $at_prefix_mode; then
+			tmux send-keys -t "$pane_id" "@$output_path "
+		else
+			printf -v escaped_path "%q" "$output_path"
+			tmux send-keys -t "$pane_id" "$escaped_path "
+		fi
+		exit 0
 	fi
 
 	# --- Command Detection ---
