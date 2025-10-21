@@ -40,8 +40,11 @@ brew install coreutils
 
 ## Setup
 
-Add a key binding to your `~/.tmux.conf` file to launch the file picker in a
-popup window over your current terminal session.
+Add a key binding to your `~/.tmux.conf` to launch the file picker. When
+triggered, it opens an fzf interface in a popup overlay, letting you select
+files without leaving your current session.
+
+Choose from the examples below based on your workflow:
 
 ```tmux
 # ~/.tmux.conf
