@@ -26,6 +26,10 @@ https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 - [fd](https://github.com/sharkdp/fd): For file discovery.
 - [bat](https://github.com/sharkdp/bat) (optional): For syntax-highlighted file
   previews.
+- [zoxide](https://github.com/ajeetdsouza/zoxide) (optional): For the `--zoxide`
+  flag to select directories from your frecent list.
+- [tree](https://gitlab.com/OldManProgrammer/unix-tree) (optional): For better
+  directory previews when using `--zoxide`.
 
 **macOS users:** The script uses `grealpath` for path resolution. Install it via
 Homebrew:
@@ -46,6 +50,12 @@ bind C-f display-popup -E "tmux-file-picker"
 
 # Use -g flag to show paths relative to git root
 bind C-g display-popup -E "tmux-file-picker -g"
+
+# Use --zoxide to select from your frecent directories first
+bind C-z display-popup -E "tmux-file-picker --zoxide"
+
+# Combine --zoxide with --git-root
+bind C-x display-popup -E "tmux-file-picker --zoxide --git-root"
 
 # Popup dimensions can be configured like this:
 # bind C-f display-popup -h 60% -w 60% -E "tmux-file-picker"
@@ -73,7 +83,7 @@ current pane directory:
 bind C-d display-popup -E "tmux-file-picker ~/my-project"
 
 # Combine with --git-root flag
-bind C-x display-popup -E "tmux-file-picker --git-root ~/my-project"
+bind C-y display-popup -E "tmux-file-picker --git-root ~/my-project"
 ```
 
 Both absolute and relative paths are supported. Relative paths are resolved
@@ -86,6 +96,22 @@ string:
 # Example with a quoted path containing spaces
 bind C-d display-popup -E "tmux-file-picker '~/my projects/project a'"
 ```
+
+### Using zoxide for directory selection
+
+The `--zoxide` flag lets you interactively select a directory from your
+[zoxide](https://github.com/ajeetdsouza/zoxide) frecent directories before
+picking files:
+
+```bash
+tmux-file-picker --zoxide
+# First: fzf shows your zoxide directories
+# Second: fzf shows files from the selected directory
+```
+
+This is particularly useful when you frequently switch between different
+projects. The `--zoxide` flag can be combined with `--git-root` to show file
+paths relative to the git repository root.
 
 ### Customizing fd flags
 

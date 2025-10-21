@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+_select_zoxide_dir() {
+	if ! command -v zoxide >/dev/null 2>&1; then
+		echo "Error: Required command 'zoxide' not found. Please install it." >&2
+		exit 1
+	fi
+
+	local zoxide_preview_cmd='ls -ap --color=always {}'
+	if command -v tree >/dev/null 2>&1; then
+		# Use tree for a richer preview if available
+		zoxide_preview_cmd='tree -C {} | head -n 30'
+	fi
+
+	# Use fzf to select a directory from zoxide's list.
+	# The '|| true' prevents the script from exiting if the user cancels fzf.
+	local dir
+	dir=$(zoxide query -l | fzf --reverse --preview "$zoxide_preview_cmd" || true)
+	echo "$dir"
+}
+
 main() {
 	if [[ -z "${TMUX-}" ]]; then
 		echo "Error: This script must be run inside a tmux session." >&2
@@ -16,12 +35,17 @@ main() {
 
 	# --- Argument Parsing ---
 	local use_git_root=false
+	local use_zoxide=false
 	local path_arg=""
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
 			--git-root|-g)
 				use_git_root=true
+				shift
+				;;
+			--zoxide)
+				use_zoxide=true
 				shift
 				;;
 			-*)
@@ -39,22 +63,38 @@ main() {
 		esac
 	done
 
-	local search_dir="${path_arg:-$pane_dir}"
-
-	# Convert to absolute path if relative
-	if [[ ! "$search_dir" = /* ]]; then
-		search_dir="$pane_dir/$search_dir"
+	# Check for conflicting arguments
+	if $use_zoxide && [[ -n "$path_arg" ]]; then
+		echo "Error: The --zoxide flag cannot be used with a path argument." >&2
+		exit 1
 	fi
 
-	# Use realpath to resolve ".." and "." components and get a canonical path
-	local realpath_cmd="realpath"
-	[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+	local search_dir
 
-	if command -v "$realpath_cmd" >/dev/null 2>&1; then
-		search_dir=$("$realpath_cmd" -m "$search_dir")
+	if $use_zoxide; then
+		search_dir=$(_select_zoxide_dir)
+		# Exit gracefully if no directory was selected from fzf
+		if [[ -z "$search_dir" ]]; then
+			exit 0
+		fi
+	else
+		search_dir="${path_arg:-$pane_dir}"
+
+		# Convert to absolute path if relative
+		if [[ ! "$search_dir" = /* ]]; then
+			search_dir="$pane_dir/$search_dir"
+		fi
+
+		# Use realpath to resolve ".." and "." components and get a canonical path
+		local realpath_cmd="realpath"
+		[[ "$OSTYPE" == "darwin"* ]] && realpath_cmd="grealpath"
+
+		if command -v "$realpath_cmd" >/dev/null 2>&1; then
+			search_dir=$("$realpath_cmd" -m "$search_dir")
+		fi
 	fi
 
-	# Verify the directory exists
+	# Verify the directory exists (this check is now common to both paths)
 	if [[ ! -d "$search_dir" ]]; then
 		echo "Error: Directory '$search_dir' does not exist." >&2
 		exit 1
