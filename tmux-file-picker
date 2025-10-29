@@ -112,7 +112,7 @@ main() {
 
 	# --- Mode Detection ---
 	local at_prefix_mode=false
-	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini" >/dev/null; then
+	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini|codex" >/dev/null; then
 		at_prefix_mode=true
 	fi
 
