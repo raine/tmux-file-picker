@@ -54,6 +54,9 @@ bind C-f display-popup -E "tmux-file-picker"
 # Use -g flag to show paths relative to git root
 bind C-g display-popup -E "tmux-file-picker -g"
 
+# Use --directories to select directories instead of files
+bind C-d display-popup -E "tmux-file-picker --directories"
+
 # Use --zoxide to select from your frecent directories first
 bind C-z display-popup -E "tmux-file-picker --zoxide"
 
@@ -130,6 +133,21 @@ tmux-file-picker --zoxide --dir-only
 # Only shows directory selection, skips file picking
 # Useful for quickly inserting project paths
 ```
+
+### Selecting directories
+
+Use `--directories` (or `-d`) to select directories instead of files:
+
+```bash
+tmux-file-picker --directories
+tmux-file-picker -d
+
+# Can be combined with other flags
+tmux-file-picker -d --git-root
+```
+
+The preview shows a `tree` view of each directory (falls back to `ls` if tree is
+not installed).
 
 ### Customizing fd flags
 

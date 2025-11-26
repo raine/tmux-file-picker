@@ -37,6 +37,7 @@ main() {
 	local use_git_root=false
 	local use_zoxide=false
 	local dir_only=false
+	local select_directories=false
 	local path_arg=""
 
 	while [[ $# -gt 0 ]]; do
@@ -51,6 +52,10 @@ main() {
 				;;
 			--dir-only)
 				dir_only=true
+				shift
+				;;
+			--directories|-d)
+				select_directories=true
 				shift
 				;;
 			-*)
@@ -149,16 +154,31 @@ main() {
 		exit 1
 	fi
 
-	# --- File Selection ---
-	local preview_cmd="cat {}"
-	if command -v bat >/dev/null 2>&1; then
-		preview_cmd="bat --style=numbers --color=always {}"
-	elif command -v batcat >/dev/null 2>&1; then
-		preview_cmd="batcat --style=numbers --color=always {}"
-	fi
+	# --- File/Directory Selection ---
+	local fd_flags
+	local preview_cmd
 
-	# Allow passing additional fd flags through environment variable
-	local fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type f --exclude .git}"
+	if $select_directories; then
+		# Directory selection mode
+		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type d --exclude .git}"
+
+		if command -v tree >/dev/null 2>&1; then
+			preview_cmd='tree -C {} | head -n 30'
+		else
+			preview_cmd='ls -ap --color=always {}'
+		fi
+	else
+		# File selection mode (default)
+		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type f --exclude .git}"
+
+		if command -v bat >/dev/null 2>&1; then
+			preview_cmd="bat --style=numbers --color=always {}"
+		elif command -v batcat >/dev/null 2>&1; then
+			preview_cmd="batcat --style=numbers --color=always {}"
+		else
+			preview_cmd="cat {}"
+		fi
+	fi
 
 	local selected_files_str
 	selected_files_str=$(cd "$search_dir" && $fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
