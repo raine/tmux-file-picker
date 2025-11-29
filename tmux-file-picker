@@ -184,7 +184,12 @@ main() {
 	selected_files_str=$(cd "$search_dir" && $fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
 
 	if [[ -z "$selected_files_str" ]]; then
-		exit 0
+		if $use_zoxide; then
+			# If zoxide was used but file selection cancelled, continue to output the directory itself
+			:
+		else
+			exit 0
+		fi
 	fi
 
 	# --- Path Processing ---
@@ -200,8 +205,13 @@ main() {
 
 	# When using zoxide, return absolute paths
 	if $use_zoxide; then
-		# Prepend search directory to each filename to create full paths
-		relative_paths=("${selected_files[@]/#/$search_dir\/}")
+		if [[ ${#selected_files[@]} -eq 0 ]]; then
+			# Fallback: output the directory itself if no files were selected
+			relative_paths=("$search_dir")
+		else
+			# Prepend search directory to each filename to create full paths
+			relative_paths=("${selected_files[@]/#/$search_dir\/}")
+		fi
 	else
 		# Standard path relativization logic
 		local base_dir_for_relativization=""
