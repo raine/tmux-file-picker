@@ -13,11 +13,11 @@ _select_zoxide_dir() {
 		zoxide_preview_cmd='tree -C {} | head -n 30'
 	fi
 
-	# Use fzf to select a directory from zoxide's list.
+	# Use fzf to select directories from zoxide's list.
 	# The '|| true' prevents the script from exiting if the user cancels fzf.
-	local dir
-	dir=$(zoxide query -l | fzf --reverse --preview "$zoxide_preview_cmd" || true)
-	echo "$dir"
+	local dirs
+	dirs=$(zoxide query -l | fzf --multi --reverse --preview "$zoxide_preview_cmd" || true)
+	echo "$dirs"
 }
 
 main() {
@@ -84,16 +84,21 @@ main() {
 		exit 1
 	fi
 
-	local search_dir
+	local search_dirs=()
 
 	if $use_zoxide; then
-		search_dir=$(_select_zoxide_dir)
+		local zoxide_output
+		zoxide_output=$(_select_zoxide_dir)
 		# Exit gracefully if no directory was selected from fzf
-		if [[ -z "$search_dir" ]]; then
+		if [[ -z "$zoxide_output" ]]; then
 			exit 0
 		fi
+		# Split multiline output into array
+		while IFS= read -r line; do
+			[[ -n "$line" ]] && search_dirs+=("$line")
+		done <<< "$zoxide_output"
 	else
-		search_dir="${path_arg:-$pane_dir}"
+		local search_dir="${path_arg:-$pane_dir}"
 
 		# Convert to absolute path if relative
 		if [[ ! "$search_dir" = /* ]]; then
@@ -107,13 +112,16 @@ main() {
 		if command -v "$realpath_cmd" >/dev/null 2>&1; then
 			search_dir=$("$realpath_cmd" -m "$search_dir")
 		fi
+		search_dirs=("$search_dir")
 	fi
 
-	# Verify the directory exists (this check is now common to both paths)
-	if [[ ! -d "$search_dir" ]]; then
-		echo "Error: Directory '$search_dir' does not exist." >&2
-		exit 1
-	fi
+	# Verify all directories exist
+	for dir in "${search_dirs[@]}"; do
+		if [[ ! -d "$dir" ]]; then
+			echo "Error: Directory '$dir' does not exist." >&2
+			exit 1
+		fi
+	done
 
 	# --- Mode Detection ---
 	local at_prefix_mode=false
@@ -128,18 +136,21 @@ main() {
 		exit 1
 	fi
 
-	# If --dir-only is set, just output the directory path and exit
+	# If --dir-only is set, just output the directory paths and exit
 	if $dir_only; then
-		# When using zoxide, output absolute path
-		local output_path="$search_dir"
-
-		# Format output for at_prefix_mode if needed
+		local output_str=""
 		if $at_prefix_mode; then
-			tmux send-keys -t "$pane_id" "@$output_path "
+			printf -v output_str "@%s " "${search_dirs[@]}"
 		else
-			printf -v escaped_path "%q" "$output_path"
-			tmux send-keys -t "$pane_id" "$escaped_path "
+			local escaped_paths=()
+			for dir in "${search_dirs[@]}"; do
+				local escaped
+				printf -v escaped "%q" "$dir"
+				escaped_paths+=("$escaped")
+			done
+			output_str=$(printf "%s " "${escaped_paths[@]}")
 		fi
+		tmux send-keys -t "$pane_id" "$output_str"
 		exit 0
 	fi
 
@@ -181,11 +192,17 @@ main() {
 	fi
 
 	local selected_files_str
-	selected_files_str=$(cd "$search_dir" && $fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
+	if [[ ${#search_dirs[@]} -eq 1 ]]; then
+		# Single directory: cd into it for cleaner relative paths in fzf
+		selected_files_str=$(cd "${search_dirs[0]}" && $fd_cmd $fd_flags | fzf --multi --reverse --preview "$preview_cmd" || true)
+	else
+		# Multiple directories: pass them as arguments to fd (returns absolute paths)
+		selected_files_str=$($fd_cmd $fd_flags "${search_dirs[@]}" | fzf --multi --reverse --preview "$preview_cmd" || true)
+	fi
 
 	if [[ -z "$selected_files_str" ]]; then
 		if $use_zoxide; then
-			# If zoxide was used but file selection cancelled, continue to output the directory itself
+			# If zoxide was used but file selection cancelled, continue to output the directories
 			:
 		else
 			exit 0
@@ -206,14 +223,18 @@ main() {
 	# When using zoxide, return absolute paths
 	if $use_zoxide; then
 		if [[ ${#selected_files[@]} -eq 0 ]]; then
-			# Fallback: output the directory itself if no files were selected
-			relative_paths=("$search_dir")
+			# Fallback: output the directories themselves if no files were selected
+			relative_paths=("${search_dirs[@]}")
+		elif [[ ${#search_dirs[@]} -eq 1 ]]; then
+			# Single directory mode: fd returned relative paths, prepend the directory
+			relative_paths=("${selected_files[@]/#/${search_dirs[0]}\/}")
 		else
-			# Prepend search directory to each filename to create full paths
-			relative_paths=("${selected_files[@]/#/$search_dir\/}")
+			# Multiple directories mode: fd returned absolute paths, use as-is
+			relative_paths=("${selected_files[@]}")
 		fi
 	else
-		# Standard path relativization logic
+		# Standard path relativization logic (non-zoxide always has single directory)
+		local search_dir="${search_dirs[0]}"
 		local base_dir_for_relativization=""
 
 		if $use_git_root; then
