@@ -31,8 +31,8 @@ https://github.com/user-attachments/assets/df04f352-0c33-4987-bd23-caa19ee019a4
 - [tree](https://gitlab.com/OldManProgrammer/unix-tree) (optional): For better
   directory previews when using `--zoxide`.
 
-**macOS users:** The script uses `grealpath` for path resolution. Install it via
-Homebrew:
+**macOS users:** `grealpath` is required when using `--git-root` or passing a
+directory argument. Install it via Homebrew:
 
 ```sh
 brew install coreutils
