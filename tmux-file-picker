@@ -220,8 +220,8 @@ main() {
 	# --- Path Relativization ---
 	local relative_paths=()
 
-	# When using zoxide, return absolute paths
-	if $use_zoxide; then
+	# When using zoxide or explicit path arg, return absolute paths
+	if $use_zoxide || [[ -n "$path_arg" ]]; then
 		if [[ ${#selected_files[@]} -eq 0 ]]; then
 			# Fallback: output the directories themselves if no files were selected
 			relative_paths=("${search_dirs[@]}")
@@ -239,8 +239,6 @@ main() {
 
 		if $use_git_root; then
 			base_dir_for_relativization="$git_root"
-		elif [[ "$search_dir" != "$pane_dir" ]]; then
-			base_dir_for_relativization="$pane_dir"
 		fi
 
 		if [[ -n "$base_dir_for_relativization" ]]; then
