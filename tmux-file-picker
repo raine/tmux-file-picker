@@ -171,7 +171,7 @@ main() {
 
 	if $select_directories; then
 		# Directory selection mode
-		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type d --exclude .git}"
+		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type d --exclude .git}"
 
 		if command -v tree >/dev/null 2>&1; then
 			preview_cmd='tree -C {} | head -n 30'
@@ -180,7 +180,7 @@ main() {
 		fi
 	else
 		# File selection mode (default)
-		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --type f --exclude .git}"
+		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type f --exclude .git}"
 
 		if command -v bat >/dev/null 2>&1; then
 			preview_cmd="bat --style=numbers --color=always {}"
