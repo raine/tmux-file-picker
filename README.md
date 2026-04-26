@@ -163,7 +163,7 @@ https://github.com/Aider-AI/aider/issues/2156#issuecomment-2439919513
 ## Related projects
 
 - [workmux](https://github.com/raine/workmux) — Git worktrees + tmux windows for parallel AI agent workflows
-- [consult-llm-mcp](https://github.com/raine/consult-llm-mcp) — MCP server that lets Claude Code consult stronger AI models (o3, Gemini, GPT-5.1 Codex)
+- [consult-llm](https://github.com/raine/consult-llm) — Consult other AI models from your agent workflow
 - [claude-history](https://github.com/raine/claude-history) — Search and view Claude Code conversation history with fzf
 - [tmux-inspect](https://github.com/raine/tmux-inspect) — Inspect objects in tmux popups using jless
 - [tmux-agent-usage](https://github.com/raine/tmux-agent-usage) — Display AI agent rate limit usage in your tmux status bar
