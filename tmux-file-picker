@@ -38,6 +38,7 @@ main() {
 	local use_zoxide=false
 	local dir_only=false
 	local select_directories=false
+	local include_ignored=false
 	local path_arg=""
 
 	while [[ $# -gt 0 ]]; do
@@ -56,6 +57,10 @@ main() {
 				;;
 			--directories|-d)
 				select_directories=true
+				shift
+				;;
+			--include-ignored)
+				include_ignored=true
 				shift
 				;;
 			-*)
@@ -166,12 +171,16 @@ main() {
 	fi
 
 	# --- File/Directory Selection ---
-	local fd_flags
+	local -a fd_flags
 	local preview_cmd
 
 	if $select_directories; then
 		# Directory selection mode
-		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type d --exclude .git}"
+		read -r -a fd_flags <<< "${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type d --exclude .git}"
+
+		if $include_ignored && [[ -z "${TMUX_FILE_PICKER_FD_FLAGS+x}" ]]; then
+			fd_flags+=(--no-ignore)
+		fi
 
 		if command -v tree >/dev/null 2>&1; then
 			preview_cmd='tree -C {} | head -n 30'
@@ -180,7 +189,11 @@ main() {
 		fi
 	else
 		# File selection mode (default)
-		fd_flags="${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type f --exclude .git}"
+		read -r -a fd_flags <<< "${TMUX_FILE_PICKER_FD_FLAGS:--H --follow --type f --exclude .git}"
+
+		if $include_ignored && [[ -z "${TMUX_FILE_PICKER_FD_FLAGS+x}" ]]; then
+			fd_flags+=(--no-ignore)
+		fi
 
 		if command -v bat >/dev/null 2>&1; then
 			preview_cmd="bat --style=numbers --color=always {}"
@@ -194,10 +207,13 @@ main() {
 	local selected_files_str
 	if [[ ${#search_dirs[@]} -eq 1 ]]; then
 		# Single directory: cd into it for cleaner relative paths in fzf
-		selected_files_str=$(cd "${search_dirs[0]}" && $fd_cmd $fd_flags | sort | fzf --multi --reverse --freeze-right=1 --tiebreak=index --preview "$preview_cmd" || true)
+		selected_files_str=$(
+			cd "${search_dirs[0]}"
+			"$fd_cmd" "${fd_flags[@]}" | sort | fzf --multi --reverse --freeze-right=1 --tiebreak=index --preview "$preview_cmd" || true
+		)
 	else
 		# Multiple directories: pass them as arguments to fd (returns absolute paths)
-		selected_files_str=$($fd_cmd $fd_flags "${search_dirs[@]}" | sort | fzf --multi --reverse --freeze-right=1 --tiebreak=index --preview "$preview_cmd" || true)
+		selected_files_str=$("$fd_cmd" "${fd_flags[@]}" "${search_dirs[@]}" | sort | fzf --multi --reverse --freeze-right=1 --tiebreak=index --preview "$preview_cmd" || true)
 	fi
 
 	if [[ -z "$selected_files_str" ]]; then
