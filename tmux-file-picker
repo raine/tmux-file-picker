@@ -130,8 +130,12 @@ main() {
 
 	# --- Mode Detection ---
 	local at_prefix_mode=false
+	local pi_agent_mode=false
 	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini|codex|(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
 		at_prefix_mode=true
+	fi
+	if pgrep -P "$pane_pid" -f "(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
+		pi_agent_mode=true
 	fi
 
 	local git_root
@@ -292,7 +296,12 @@ main() {
 	fi
 
 	# --- Send to Tmux ---
-	tmux send-keys -t "$pane_id" "$files_oneline"
+	# Pi inserts bracketed pastes atomically without opening file completion.
+	if $pi_agent_mode; then
+		tmux send-keys -l -t "$pane_id" $'\e[200~'"$files_oneline"$'\e[201~'
+	else
+		tmux send-keys -t "$pane_id" "$files_oneline"
+	fi
 }
 
 main "$@"
