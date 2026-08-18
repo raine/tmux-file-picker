@@ -33,6 +33,16 @@ main() {
 	pane_dir=$(tmux display-message -p '#{pane_current_path}')
 	pane_pid=$(tmux display-message -p '#{pane_pid}')
 
+	# --- Mode Detection ---
+	local at_prefix_mode=false
+	local pi_agent_mode=false
+	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini|codex|(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
+		at_prefix_mode=true
+	fi
+	if pgrep -P "$pane_pid" -f "(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
+		pi_agent_mode=true
+	fi
+
 	# --- Argument Parsing ---
 	local use_git_root=false
 	local use_zoxide=false
@@ -128,16 +138,6 @@ main() {
 		fi
 	done
 
-	# --- Mode Detection ---
-	local at_prefix_mode=false
-	local pi_agent_mode=false
-	if pgrep -P "$pane_pid" -f ".*claude.*|node.*gemini|codex|(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
-		at_prefix_mode=true
-	fi
-	if pgrep -P "$pane_pid" -f "(^|[ /])(pi|omp)([[:space:]]|$)|@oh-my-pi/pi-coding-agent" >/dev/null; then
-		pi_agent_mode=true
-	fi
-
 	local git_root
 	git_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
 	if $use_git_root && [[ -z "$git_root" ]]; then
@@ -159,7 +159,12 @@ main() {
 			done
 			output_str=$(printf "%s " "${escaped_paths[@]}")
 		fi
-		tmux send-keys -t "$pane_id" "$output_str"
+		# Pi inserts bracketed pastes atomically without opening file completion.
+		if $pi_agent_mode; then
+			tmux send-keys -l -t "$pane_id" $'\e[200~'"$output_str"$'\e[201~'
+		else
+			tmux send-keys -t "$pane_id" "$output_str"
+		fi
 		exit 0
 	fi
 
